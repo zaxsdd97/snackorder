@@ -305,7 +305,7 @@ document.getElementById("submitBtn").addEventListener("click", function() {
 
   const excludeDates = flatpickrInstance.selectedDates.map(d=>d.toISOString().slice(0,10));
 
-  fetch("https://script.google.com/macros/s/AKfycbwZByaqwbLdjp6JoISruon8T0bq9bKT-I56Nd9RTg44PkdhbQKFUC_HX17ONjFYa9Yg5g/exec", {
+  fetch(GOOGLE_SCRIPT_URL, {
     method: "POST",
     body: JSON.stringify({
       customer,
@@ -329,4 +329,5 @@ document.getElementById("submitBtn").addEventListener("click", function() {
 </script>
 </body>
 </html>
+
 
