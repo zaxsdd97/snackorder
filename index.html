@@ -289,7 +289,7 @@ attachQtyEvent();
 document.getElementById("preserveCount").addEventListener("input", updateTotal);
 
 // ------------------ 제출 기능 ------------------
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxH-4cxEc3zhFkHZ4J7nRW-xgpQ1NU24SLQcBiA3vv_GXsaxRd7ai8iV3HdWwlejOiuDQ/exec";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwZByaqwbLdjp6JoISruon8T0bq9bKT-I56Nd9RTg44PkdhbQKFUC_HX17ONjFYa9Yg5g/exec";
 
 document.getElementById("submitBtn").addEventListener("click", function() {
   const customer = document.getElementById("customerInput").value;
@@ -305,7 +305,7 @@ document.getElementById("submitBtn").addEventListener("click", function() {
 
   const excludeDates = flatpickrInstance.selectedDates.map(d=>d.toISOString().slice(0,10));
 
-  fetch(GOOGLE_SCRIPT_URL, {
+  fetch("https://script.google.com/macros/s/AKfycbwZByaqwbLdjp6JoISruon8T0bq9bKT-I56Nd9RTg44PkdhbQKFUC_HX17ONjFYa9Yg5g/exec", {
     method: "POST",
     body: JSON.stringify({
       customer,
@@ -329,3 +329,4 @@ document.getElementById("submitBtn").addEventListener("click", function() {
 </script>
 </body>
 </html>
+
