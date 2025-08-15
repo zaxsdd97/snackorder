@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>간식 주문 미니 웹</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/l10n/ko.css">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap');
+  body {
+    font-family: 'Roboto', sans-serif;
+    background-color: #f4fdf4;
+    display: flex;
+    justify-content: center;
+    padding: 40px;
+  }
+  .container {
+    background-color: white;
+    border-radius: 25px;
+    padding: 30px;
+    max-width: 600px;
+    width: 100%;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  h1 {
+    text-align: center;
+    color: #66bb6a;
+    font-weight: 500;
+  }
+  label {
+    font-weight: 500;
+    display: block;
+    margin-top: 15px;
+    cursor: pointer;
+  }
+  input, select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    margin-top: 5px;
+    font-size: 15px;
+    font-family: 'Roboto', sans-serif;
+    outline: none;
+  }
+  input:focus {
+    border-color: #81c784;
+    box-shadow: 0 0 5px rgba(129,199,132,0.5);
+  }
+  .row {
+    display: flex;
+    gap: 10px;
+    margin-top: 5px;
+  }
+  .row input {
+    flex: 1;
+  }
+  .total-box, .month-total-box {
+    background-color: #e6f7e6;
+    padding: 10px;
+    border-radius: 20px;
+    margin-top: 10px;
+    text-align: center;
+    font-weight: bold;
+    color: #2e7d32;
+    font-family: 'Roboto', sans-serif;
+  }
+  button {
+    margin-top: 10px;
+    padding: 12px;
+    border: none;
+    border-radius: 20px;
+    width: 100%;
+    background-color: #a5d6a7;
+    color: white;
+    font-size: 15px;
+    font-family: 'Roboto', sans-serif;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  button:hover {
+    background-color: #81c784;
+  }
+  .exclude-list {
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 20px;
+    background-color: #fff3f3;
+    color: #d32f2f;
+    font-family: 'Roboto', sans-serif;
+  }
+  .flatpickr-calendar {
+    border-radius: 20px !important;
+    font-family: 'Roboto', sans-serif;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+  .flatpickr-day {
+    border-radius: 50%;
+    transition: background-color 0.2s ease;
+    font-size: 14px;
+    width: 36px;
+    height: 36px;
+    line-height: 36px;
+  }
+  .flatpickr-day:hover:not(.disabled) {
+    background-color: #c8e6c9;
+  }
+  .flatpickr-day.selected-exclude {
+    background-color: #ff8a80 !important;
+    color: white;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>간식 주문</h1>
+
+  <label for="customerInput">주문하는 곳 (학교 / 유치원)</label>
+  <input type="text" id="customerInput" placeholder="예시: 한국초등학교 돌봄교실 / 한국초등학교 병설유치원 등">
+
+  <label for="snackMonth">간식 신청 월</label>
+  <input type="month" id="snackMonth">
+
+  <label>간식이 필요하지 않은 날짜(제외일) 선택</label>
+  <input type="text" id="excludeDates" placeholder="날짜를 선택하세요" readonly>
+  <div id="excludeList" class="exclude-list">선택된 제외일: 없음</div>
+  <div id="excludeCount" class="exclude-list" style="margin-top:5px;">총 제외일: 0일</div>
+
+  <label>간식 일 수</label>
+  <input type="number" id="snackDays" readonly>
+
+  <label>반별 수량</label>
+  <div id="classList">
+    <div class="row">
+      <input type="text" placeholder="반 이름">
+      <input type="number" placeholder="수량">
+    </div>
+  </div>
+  <button type="button" onclick="addClassRow()">반 추가</button>
+
+  <label>보존식 수량</label>
+  <input type="number" id="preserveCount" value="0">
+
+  <label>1일 간식 총 수량 (보존식 포함)</label>
+  <div class="total-box" id="totalCount">0</div>
+
+  <label id="monthTotalLabel">0월 간식 총 수량</label>
+  <div class="month-total-box" id="monthTotal">0</div>
+
+  <button type="button" id="submitBtn">주문 제출</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://npmcdn.com/flatpickr/dist/l10n/ko.js"></script>
+<script>
+const holidays = [
+  "2025-01-01","2025-01-28","2025-01-29","2025-01-30",
+  "2025-03-01","2025-05-05","2025-05-06","2025-06-06",
+  "2025-08-15","2025-10-03","2025-10-06","2025-10-07",
+  "2025-10-09","2025-12-25"
+];
+
+let selectedMonth = null;
+let flatpickrInstance = null;
+
+const snackMonthInput = document.getElementById("snackMonth");
+snackMonthInput.addEventListener("change", function() {
+  selectedMonth = this.value;
+  initCalendar();
+  updateMonthTotalLabel();
+});
+
+function initCalendar() {
+  if (!selectedMonth) return;
+  if(flatpickrInstance) flatpickrInstance.destroy(); 
+
+  const [year, month] = selectedMonth.split("-");
+  const lastDay = new Date(year, month, 0).getDate();
+
+  flatpickrInstance = flatpickr("#excludeDates", {
+    mode: "multiple",
+    dateFormat: "Y-m-d",
+    minDate: selectedMonth+"-01",
+    maxDate: `${selectedMonth}-${lastDay}`,
+    locale: "ko",
+    inline: true,
+    disable: [
+      function(date){
+        const day = date.getDay();
+        const formatted = date.toISOString().slice(0,10);
+        return day===0 || day===6 || holidays.includes(formatted);
+      }
+    ],
+    onDayCreate: function(dObj, dStr, fp, dayElem) {
+      const date = dayElem.dateObj;
+      const dayISO = date.toISOString().slice(0,10);
+      if(fp.selectedDates.some(sd=>sd.toISOString().slice(0,10)===dayISO)){
+        dayElem.classList.add('selected-exclude');
+      } else {
+        dayElem.classList.remove('selected-exclude');
+      }
+    },
+    onChange: function(selectedDates) {
+      updateExcludeList(selectedDates);
+      calculateSnackDays(selectedDates);
+      highlightSelectedDates();
+    }
+  });
+}
+
+function highlightSelectedDates() {
+  if(!flatpickrInstance) return;
+  flatpickrInstance.redraw();
+}
+
+function updateExcludeList(dates){
+  const dayNames = ["일","월","화","수","목","금","토"];
+  if(dates.length===0){
+    document.getElementById("excludeList").innerText = "선택된 제외일: 없음";
+    document.getElementById("excludeCount").innerText = "총 제외일: 0일";
+    return;
+  }
+  const list = dates.map(d=>{
+    const month = d.getMonth()+1;
+    const day = d.getDate();
+    const week = dayNames[d.getDay()];
+    return month+"월 "+day+"일("+week+")";
+  });
+  document.getElementById("excludeList").innerText = "선택된 제외일: " + list.join(", ");
+  document.getElementById("excludeCount").innerText = "총 제외일: " + dates.length + "일";
+}
+
+function calculateSnackDays(excluded){
+  if(!selectedMonth) return;
+  const year = parseInt(selectedMonth.split("-")[0]);
+  const month = parseInt(selectedMonth.split("-")[1])-1;
+  let date = new Date(year, month, 1);
+  let weekdays=0;
+  while(date.getMonth()===month){
+    const day=date.getDay();
+    const formatted = date.toISOString().slice(0,10);
+    if(day!==0 && day!==6 && !holidays.includes(formatted)) weekdays++;
+    date.setDate(date.getDate()+1);
+  }
+  const snackDays = weekdays - excluded.length;
+  document.getElementById("snackDays").value = snackDays;
+  updateMonthTotal();
+}
+
+function addClassRow(){
+  const container = document.getElementById("classList");
+  const row = document.createElement("div");
+  row.className="row";
+  row.innerHTML=`<input type="text" placeholder="반 이름">
+                 <input type="number" placeholder="수량">`;
+  container.appendChild(row);
+  attachQtyEvent();
+}
+
+function attachQtyEvent(){
+  document.querySelectorAll("#classList input[type='number']").forEach(input=>{
+    input.addEventListener("input", updateTotal);
+  });
+}
+
+function updateTotal(){
+  let total=0;
+  document.querySelectorAll("#classList input[type='number']").forEach(input=>{
+    total+=Number(input.value)||0;
+  });
+  total+=Number(document.getElementById("preserveCount").value)||0;
+  document.getElementById("totalCount").innerText=total;
+  updateMonthTotal();
+}
+
+function updateMonthTotalLabel(){
+  const month = selectedMonth ? parseInt(selectedMonth.split("-")[1]) : 0;
+  document.getElementById("monthTotalLabel").innerText=month+"월 간식 총 수량";
+}
+
+function updateMonthTotal(){
+  const snackDays = Number(document.getElementById("snackDays").value)||0;
+  const totalPerDay = Number(document.getElementById("totalCount").innerText)||0;
+  const monthTotal = snackDays*totalPerDay;
+  document.getElementById("monthTotal").innerText = monthTotal;
+}
+
+attachQtyEvent();
+document.getElementById("preserveCount").addEventListener("input", updateTotal);
+
+// ------------------ 제출 기능 ------------------
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxH-4cxEc3zhFkHZ4J7nRW-xgpQ1NU24SLQcBiA3vv_GXsaxRd7ai8iV3HdWwlejOiuDQ/exec";
+
+document.getElementById("submitBtn").addEventListener("click", function() {
+  const customer = document.getElementById("customerInput").value;
+  const snackMonth = document.getElementById("snackMonth").value;
+  const snackDays = Number(document.getElementById("snackDays").value);
+  const preserveCount = Number(document.getElementById("preserveCount").value);
+
+  const classData = Array.from(document.querySelectorAll("#classList .row")).map(row=>{
+    const name = row.querySelector('input[type="text"]').value;
+    const qty = Number(row.querySelector('input[type="number"]').value) || 0;
+    return {name, qty};
+  });
+
+  const excludeDates = flatpickrInstance.selectedDates.map(d=>d.toISOString().slice(0,10));
+
+  fetch(GOOGLE_SCRIPT_URL, {
+    method: "POST",
+    body: JSON.stringify({
+      customer,
+      snackMonth,
+      snackDays,
+      preserveCount,
+      classData,
+      excludeDates
+    }),
+    headers: {"Content-Type":"application/json"}
+  })
+  .then(res=>res.json())
+  .then(res=>{
+    if(res.status==="success") alert("제출 성공!");
+    else alert("제출 실패: "+res.message);
+  })
+  .catch(err=>{
+    alert("제출 실패: "+err);
+  });
+});
+</script>
+</body>
+</html>
